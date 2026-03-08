@@ -165,7 +165,7 @@ textarea.qr-input:focus{border-color:var(--accent)}
 
 <div class="tabs">
   <button class="tab active" onclick="switchTab('image',this)">🖼 Image</button>
-  <button class="tab" onclick="switchTab('compress',this)">🗜 Compress</button>
+  <button class="tab" onclick="switchTab('compress',this)">🟫 Pixelate</button>
   <button class="tab" onclick="switchTab('base64',this)">🔡 Base64</button>
   <button class="tab" onclick="switchTab('text',this)">📝 Text Tools</button>
   <button class="tab" onclick="switchTab('qr',this)">📱 QR Code</button>
@@ -198,24 +198,22 @@ textarea.qr-input:focus{border-color:var(--accent)}
 
 <!-- ════════════════ COMPRESS ════════════════ -->
 <div class="panel" id="panel-compress">
-  <div class="section-label">Image Compressor — reduce file size without changing format</div>
+  <div class="section-label">Image Pixelator — the lower the quality, the more destroyed it gets</div>
   <div class="drop-zone" id="cmpDrop" ondragover="dragOver(event,'cmpDrop')" ondragleave="dragLeave('cmpDrop')" ondrop="dropFiles(event,'cmp')">
     <input type="file" accept="image/*" multiple onchange="addCmpFiles(event)">
-    <span class="drop-icon">🗜️</span>
-    <div class="drop-title">Drop images to compress</div>
-    <div class="drop-sub">Keeps the same format — just shrinks the file size<br><strong>PNG · JPG · WebP</strong></div>
+    <span class="drop-icon">🟫</span>
+    <div class="drop-title">Drop images to pixelate</div>
+    <div class="drop-sub">Drag the slider down for maximum destruction<br><strong>PNG · JPG · WebP · GIF · BMP</strong></div>
   </div>
   <div class="options-bar">
     <div class="field-grp">
-      <div class="field-lbl">Quality: <span id="cmpQLabel">75</span>%</div>
-      <input type="range" id="cmpQ" min="5" max="99" value="75" oninput="document.getElementById('cmpQLabel').textContent=this.value">
+      <div class="field-lbl">Quality: <span id="cmpQLabel">75</span>% — <span id="cmpQDesc" style="color:var(--accent)">noticeable</span></div>
+      <input type="range" id="cmpQ" min="1" max="100" value="75" oninput="updatePixelLabel()">
     </div>
-    <div class="field-grp"><div class="field-lbl">Max Width px</div><input type="number" id="cmpW" placeholder="original" min="1" max="8000"></div>
-    <div class="field-grp"><div class="field-lbl">Max Height px</div><input type="number" id="cmpH" placeholder="original" min="1" max="8000"></div>
   </div>
   <div class="file-list" id="cmpList"></div>
   <div class="action-bar" id="cmpActions" style="display:none">
-    <button class="btn btn-primary" onclick="compressAll()">⚡ Compress All</button>
+    <button class="btn btn-primary" onclick="compressAll()">⚡ Pixelate All</button>
     <button class="btn btn-green" id="cmpDlAll" style="display:none" onclick="downloadAllCmp()">↓ Download All</button>
     <button class="btn btn-ghost" onclick="clearList('cmp')">Clear</button>
     <span class="file-count" id="cmpCount"></span>
@@ -495,17 +493,14 @@ function renderCmpList(){
   document.getElementById('cmpCount').textContent=`${cmpFiles.length} file${cmpFiles.length!==1?'s':''}`;
   dlAll.style.display=cmpFiles.filter(f=>f.status==='done').length>=2?'inline-block':'none';
   list.innerHTML=cmpFiles.map((f,i)=>{
-    const saved=f.result?Math.max(0,Math.round((1-f.result.size/f.file.size)*100)):0;
-    const bar=f.result?`<div class="compress-bar-wrap"><div class="compress-bar-fill" style="width:${saved}%"></div></div>`:'';
     return`<div class="file-row" id="cmpRow${i}">
       <span class="drag-handle" title="Drag to reorder">⠿</span>
       <div class="fi">🖼️</div>
       <div class="fi-info">
         <div class="fi-name">${esc(f.file.name)}</div>
-        <div class="fi-meta">${fmtSize(f.file.size)}${f.result?` → ${fmtSize(f.result.size)} <span class="compress-saved">−${saved}%</span>`:''}</div>
-        ${bar}
+        <div class="fi-meta">${fmtSize(f.file.size)}${f.result?` → ${esc(f.result.name)}`:''}</div>
       </div>
-      <span class="fi-badge ${f.status}">${f.status==='working'?'⏳ compressing…':f.status}</span>
+      <span class="fi-badge ${f.status}">${f.status==='working'?'⏳ pixelating…':f.status}</span>
       ${f.result?`<a class="fi-dl" href="${f.result.url}" download="${f.result.name}">↓ Save</a>`:''}
       <span class="fi-rm" onclick="removeFile('cmp',${i})">✕</span>
     </div>`;
@@ -513,28 +508,53 @@ function renderCmpList(){
   makeDraggable('cmpList',cmpFiles,renderCmpList);
 }
 
+function updatePixelLabel(){
+  const q=parseInt(document.getElementById('cmpQ').value);
+  document.getElementById('cmpQLabel').textContent=q;
+  const desc=q>=90?'basically unchanged':q>=70?'noticeable':q>=45?'chunky':q>=20?'very blocky 🧱':q>=8?'absolutely destroyed 💀':'minecraft mode 🎮';
+  document.getElementById('cmpQDesc').textContent=desc;
+}
+
+function pixelateImage(file,quality){
+  return new Promise((res,rej)=>{
+    const img=new Image(),src=URL.createObjectURL(file);
+    img.onload=()=>{
+      const W=img.width,H=img.height;
+      // pixel block size: quality 100 = 1px (no change), quality 1 = up to ~80px blocks
+      const blockSize=Math.max(1,Math.round((1-(quality/100))*80));
+      const c=document.createElement('canvas');c.width=W;c.height=H;
+      const ctx=c.getContext('2d');
+      // Draw tiny then scale up = pixelation
+      const smallW=Math.max(1,Math.round(W/blockSize));
+      const smallH=Math.max(1,Math.round(H/blockSize));
+      ctx.imageSmoothingEnabled=false;
+      // Draw small
+      ctx.drawImage(img,0,0,smallW,smallH);
+      // Scale back up with no smoothing
+      ctx.drawImage(c,0,0,smallW,smallH,0,0,W,H);
+      URL.revokeObjectURL(src);
+      const fmt=file.type==='image/png'?'image/png':'image/jpeg';
+      res({url:c.toDataURL(fmt,0.92),ext:imgExt(fmt)});
+    };
+    img.onerror=()=>{URL.revokeObjectURL(src);rej()};
+    img.src=src;
+  });
+}
+
 async function compressAll(){
-  const quality=(parseInt(document.getElementById('cmpQ').value)||75)/100;
-  const maxW=parseInt(document.getElementById('cmpW').value)||null;
-  const maxH=parseInt(document.getElementById('cmpH').value)||null;
+  const quality=parseInt(document.getElementById('cmpQ').value)||75;
   let n=0;
   for(let i=0;i<cmpFiles.length;i++){
     if(cmpFiles[i].status==='done')continue;
     cmpFiles[i].status='working';renderCmpList();
     try{
-      const f=cmpFiles[i].file;
-      const fmt=f.type==='image/png'?'image/png':f.type==='image/webp'?'image/webp':'image/jpeg';
-      const url=await convertImageCanvas(f,fmt,maxW,maxH,quality);
-      // Estimate compressed size from base64 length
-      const b64len=url.split(',')[1].length;
-      const size=Math.round(b64len*0.75);
-      const ext=imgExt(fmt);
-      cmpFiles[i].result={url,name:cmpFiles[i].file.name.replace(/\.[^.]+$/,'')+'_compressed.'+ext,size};
+      const {url,ext}=await pixelateImage(cmpFiles[i].file,quality);
+      cmpFiles[i].result={url,name:cmpFiles[i].file.name.replace(/\.[^.]+$/,'')+'_pixelated.'+ext};
       cmpFiles[i].status='done';n++;
     }catch{cmpFiles[i].status='error'}
     renderCmpList();
   }
-  toast(`✓ Compressed ${n} image${n!==1?'s':''}`);
+  toast(`✓ Pixelated ${n} image${n!==1?'s':''}`);
 }
 
 function downloadAllCmp(){
