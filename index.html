@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dibin's File Converter</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg:#f5f0e8; --bg2:#ede7d9; --surface:#fff; --surface2:#faf7f2;
+  --border:#e0d8cc; --border2:#cdc4b5;
+  --accent:#c0622f; --accent2:#4a7c59; --accent3:#3d5fa0;
+  --text:#1e1a14; --muted:#8a8070; --muted2:#b8ad9e; --ink:#2c2416;
+  --wrong:#b84040; --wrong-bg:#fdf0f0;
+  --correct:#4a7c59; --correct-bg:#edf7f1;
+  --card-shadow:0 2px 12px rgba(30,26,20,0.07);
+  --modal-shadow:0 20px 60px rgba(30,26,20,0.15);
+}
+body.dark {
+  --bg:#181612; --bg2:#201e19; --surface:#252118; --surface2:#2c2820;
+  --border:#38332a; --border2:#4a4438;
+  --accent:#e07848; --accent2:#5e9e6e; --accent3:#6080c8;
+  --text:#e8e0d0; --muted:#8a8070; --muted2:#6a6058; --ink:#f0e8d8;
+  --wrong:#d46060; --wrong-bg:#2e1a1a;
+  --correct:#5e9e6e; --correct-bg:#1a2e20;
+  --card-shadow:0 2px 16px rgba(0,0,0,0.3);
+  --modal-shadow:0 20px 60px rgba(0,0,0,0.5);
+}
+
+body { font-family:'Fraunces',Georgia,serif; background:var(--bg); color:var(--text); min-height:100vh; transition:background 0.2s,color 0.2s; }
+body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c0a882' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); pointer-events:none; z-index:0; }
+
+.app { position:relative; z-index:1; max-width:900px; margin:0 auto; padding:36px 24px; }
+
+/* HEADER */
+header { display:flex; align-items:center; justify-content:space-between; margin-bottom:44px; flex-wrap:wrap; gap:12px; }
+.header-left { display:flex; align-items:baseline; gap:10px; }
+.logo { font-size:1.9rem; font-weight:700; color:var(--ink); letter-spacing:-0.02em; }
+.logo em { font-style:italic; color:var(--accent); }
+.logo-sub { font-family:'DM Mono',monospace; font-size:0.62rem; color:var(--muted2); letter-spacing:0.08em; }
+.icon-btn { width:34px; height:34px; border-radius:8px; border:1.5px solid var(--border2); background:transparent; color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1rem; transition:all 0.15s; }
+.icon-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--surface2); }
+
+/* TABS */
+.tabs { display:flex; margin-bottom:32px; border:1.5px solid var(--border); border-radius:12px; overflow:hidden; width:fit-content; }
+.tab { font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:0.06em; text-transform:uppercase; padding:11px 28px; cursor:pointer; background:transparent; border:none; color:var(--muted); transition:all 0.15s; font-weight:500; border-right:1px solid var(--border); }
+.tab:last-child { border-right:none; }
+.tab:hover { color:var(--text); background:var(--bg2); }
+.tab.active { background:var(--accent); color:white; }
+
+/* SECTION LABEL */
+.section-label { font-family:'DM Mono',monospace; font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.18em; margin-bottom:14px; }
+
+/* PANEL */
+.panel { display:none; animation:fadeUp 0.2s ease; }
+.panel.active { display:block; }
+
+/* DROP ZONE */
+.drop-zone { border:2px dashed var(--border2); border-radius:16px; padding:52px 32px; text-align:center; cursor:pointer; transition:all 0.2s; background:var(--surface); position:relative; margin-bottom:24px; }
+.drop-zone:hover, .drop-zone.over { border-color:var(--accent); background:var(--surface2); transform:scale(1.005); }
+.drop-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+.drop-icon { font-size:3rem; margin-bottom:14px; display:block; }
+.drop-title { font-size:1.05rem; font-weight:700; color:var(--ink); margin-bottom:6px; }
+.drop-sub { font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--muted); line-height:1.7; }
+.drop-sub strong { color:var(--accent); }
+
+/* OPTIONS */
+.options-bar { display:flex; gap:14px; align-items:flex-end; margin-bottom:20px; flex-wrap:wrap; }
+.field-grp { display:flex; flex-direction:column; gap:5px; }
+.field-lbl { font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.12em; }
+select, input[type=number] { background:var(--surface); border:1.5px solid var(--border); border-radius:8px; color:var(--ink); font-family:'DM Mono',monospace; font-size:0.78rem; padding:8px 12px; outline:none; transition:border-color 0.15s; cursor:pointer; appearance:auto; }
+select:focus, input[type=number]:focus { border-color:var(--accent); }
+input[type=number] { width:100px; }
+
+/* FILE LIST */
+.file-list { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+.file-row { background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:12px 16px; display:flex; align-items:center; gap:12px; animation:fadeUp 0.15s ease; transition:border-color 0.15s; }
+.file-row:hover { border-color:var(--border2); }
+.fi { font-size:1.5rem; flex-shrink:0; }
+.fi-info { flex:1; min-width:0; }
+.fi-name { font-weight:600; font-size:0.88rem; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fi-meta { font-family:'DM Mono',monospace; font-size:0.62rem; color:var(--muted); margin-top:2px; }
+.fi-badge { font-family:'DM Mono',monospace; font-size:0.62rem; padding:3px 9px; border-radius:20px; flex-shrink:0; letter-spacing:0.04em; }
+.fi-badge.ready   { background:var(--bg2); color:var(--muted); border:1px solid var(--border2); }
+.fi-badge.working { background:#fff8ed; color:#c07820; border:1px solid #e8c880; }
+.fi-badge.done    { background:var(--correct-bg); color:var(--correct); border:1px solid var(--correct); }
+.fi-badge.error   { background:var(--wrong-bg); color:var(--wrong); border:1px solid var(--wrong); }
+.fi-dl { font-family:'DM Mono',monospace; font-size:0.65rem; text-transform:uppercase; letter-spacing:0.04em; padding:6px 12px; border-radius:7px; background:var(--accent2); color:white; border:none; cursor:pointer; text-decoration:none; display:inline-block; transition:filter 0.15s; flex-shrink:0; }
+.fi-dl:hover { filter:brightness(1.1); }
+.fi-rm { color:var(--muted2); cursor:pointer; font-size:0.9rem; padding:0 4px; transition:color 0.15s; flex-shrink:0; }
+.fi-rm:hover { color:var(--wrong); }
+
+/* ACTION BAR */
+.action-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.btn { font-family:'DM Mono',monospace; font-weight:500; font-size:0.75rem; letter-spacing:0.04em; text-transform:uppercase; padding:10px 20px; border-radius:8px; border:none; cursor:pointer; transition:all 0.15s; }
+.btn-primary { background:var(--accent); color:white; }
+.btn-primary:hover { filter:brightness(1.1); transform:translateY(-1px); }
+.btn-green { background:var(--accent2); color:white; }
+.btn-green:hover { filter:brightness(1.1); transform:translateY(-1px); }
+.btn-outline { background:transparent; color:var(--text); border:1.5px solid var(--border2); }
+.btn-outline:hover { border-color:var(--accent); color:var(--accent); }
+.btn-ghost { background:transparent; color:var(--muted); border:1.5px solid var(--border); font-size:0.7rem; padding:8px 14px; }
+.btn-ghost:hover { border-color:var(--wrong); color:var(--wrong); }
+.file-count { font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--muted); }
+
+/* DIVIDER */
+.divider { height:1px; background:var(--border); margin:28px 0; }
+
+/* BASE64 LAYOUT */
+.b64-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(max-width:620px){ .b64-grid { grid-template-columns:1fr; } }
+.b64-col { display:flex; flex-direction:column; gap:6px; }
+.b64-col-label { font-family:'DM Mono',monospace; font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.12em; display:flex; justify-content:space-between; align-items:center; }
+textarea.b64-area { background:var(--surface); border:1.5px solid var(--border); border-radius:8px; color:var(--ink); font-family:'DM Mono',monospace; font-size:0.73rem; padding:12px 14px; outline:none; resize:vertical; min-height:200px; width:100%; transition:border-color 0.15s; line-height:1.6; }
+textarea.b64-area:focus { border-color:var(--accent); }
+
+/* TOAST */
+.toast { position:fixed; bottom:24px; right:24px; background:var(--ink); color:var(--bg); font-family:'DM Mono',monospace; font-size:0.72rem; padding:10px 18px; border-radius:10px; z-index:999; opacity:0; transform:translateY(8px); transition:all 0.22s; pointer-events:none; }
+.toast.show { opacity:1; transform:translateY(0); }
+
+/* RESULT NOTICE */
+.result-bar { display:flex; gap:10px; align-items:center; background:var(--correct-bg); border:1.5px solid var(--correct); border-radius:10px; padding:12px 16px; margin-bottom:16px; font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--correct); animation:fadeUp 0.2s ease; }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="header-left">
+      <div class="logo">dibin's <em>converter</em></div>
+      <div class="logo-sub">// file tools</div>
+    </div>
+    <button class="icon-btn" id="darkBtn" onclick="toggleDark()" title="Dark mode">🌙</button>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('image',this)">🖼 Image</button>
+    <button class="tab" onclick="switchTab('base64',this)">🔡 Base64</button>
+  </div>
+
+  <!-- ══════════════ IMAGE PANEL ══════════════ -->
+  <div class="panel active" id="panel-image">
+    <div class="section-label">Image Converter + Resizer — batch supported</div>
+
+    <div class="drop-zone" id="imgDrop"
+      ondragover="dragOver(event,'imgDrop')"
+      ondragleave="dragLeave('imgDrop')"
+      ondrop="dropFiles(event,'img')">
+      <input type="file" accept="image/*" multiple onchange="addImgFiles(event)">
+      <span class="drop-icon">🖼️</span>
+      <div class="drop-title">Drop images here or click to browse</div>
+      <div class="drop-sub">
+        Supports <strong>PNG · JPG · JPEG · WebP · BMP · GIF</strong><br>
+        Drop as many files as you want — they'll all be converted
+      </div>
+    </div>
+
+    <!-- OPTIONS -->
+    <div class="options-bar">
+      <div class="field-grp">
+        <div class="field-lbl">Convert To</div>
+        <select id="imgFmt">
+          <option value="image/png">PNG</option>
+          <option value="image/jpeg" selected>JPG</option>
+          <option value="image/webp">WebP</option>
+          <option value="image/bmp">BMP</option>
+        </select>
+      </div>
+      <div class="field-grp">
+        <div class="field-lbl">Max Width (px)</div>
+        <input type="number" id="imgW" placeholder="original" min="1" max="8000">
+      </div>
+      <div class="field-grp">
+        <div class="field-lbl">Max Height (px)</div>
+        <input type="number" id="imgH" placeholder="original" min="1" max="8000">
+      </div>
+      <div class="field-grp">
+        <div class="field-lbl">Quality %</div>
+        <input type="number" id="imgQ" value="92" min="1" max="100">
+      </div>
+    </div>
+
+    <!-- FILE LIST -->
+    <div class="file-list" id="imgList"></div>
+
+    <!-- ACTIONS -->
+    <div class="action-bar" id="imgActions" style="display:none">
+      <button class="btn btn-primary" onclick="convertAllImages()">⚡ Convert All</button>
+      <button class="btn btn-green" id="imgDlAll" style="display:none" onclick="downloadAllImages()">↓ Download All</button>
+      <button class="btn btn-ghost" onclick="clearImages()">Clear</button>
+      <span class="file-count" id="imgCount"></span>
+    </div>
+  </div>
+
+  <!-- ══════════════ BASE64 PANEL ══════════════ -->
+  <div class="panel" id="panel-base64">
+
+    <!-- TEXT ENCODER / DECODER -->
+    <div class="section-label">Text — Encode or Decode</div>
+    <div class="b64-grid">
+      <div class="b64-col">
+        <div class="b64-col-label"><span>Input</span></div>
+        <textarea class="b64-area" id="b64In" placeholder="Paste plain text to encode, or Base64 to decode..."></textarea>
+      </div>
+      <div class="b64-col">
+        <div class="b64-col-label">
+          <span>Output</span>
+          <button class="btn-ghost" style="font-family:'DM Mono',monospace;font-size:0.6rem;padding:3px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer" onclick="copyText('b64Out')">Copy</button>
+        </div>
+        <textarea class="b64-area" id="b64Out" readonly placeholder="Result appears here..."></textarea>
+      </div>
+    </div>
+    <div class="action-bar" style="margin-top:14px">
+      <button class="btn btn-primary" onclick="encodeText()">Encode →</button>
+      <button class="btn btn-outline" onclick="decodeText()">← Decode</button>
+      <button class="btn btn-ghost" onclick="clearText()">Clear</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- FILE ENCODER (BATCH) -->
+    <div class="section-label">Files — Encode to Base64 (batch)</div>
+    <div class="drop-zone" id="b64Drop"
+      ondragover="dragOver(event,'b64Drop')"
+      ondragleave="dragLeave('b64Drop')"
+      ondrop="dropFiles(event,'b64')">
+      <input type="file" multiple onchange="addB64Files(event)">
+      <span class="drop-icon">📎</span>
+      <div class="drop-title">Drop any files here</div>
+      <div class="drop-sub">
+        Any file type — images, PDFs, documents, whatever<br>
+        Outputs the raw Base64 string so you can embed files in HTML/CSS/code
+      </div>
+    </div>
+
+    <div class="file-list" id="b64List"></div>
+    <div class="action-bar" id="b64Actions" style="display:none">
+      <button class="btn btn-primary" onclick="encodeAllFiles()">⚡ Encode All</button>
+      <button class="btn btn-ghost" onclick="clearB64Files()">Clear</button>
+      <span class="file-count" id="b64Count"></span>
+    </div>
+  </div>
+
+  <footer style="text-align:center;padding:40px 0 16px;font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted2);letter-spacing:0.08em;">
+    crafted by <span style="color:var(--accent);font-weight:500;">dibin17</span>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DARK MODE ─────────────────────────────────────────
+let dark = localStorage.getItem('dibinDark') === 'true';
+function applyDark() { document.body.classList.toggle('dark', dark); document.getElementById('darkBtn').textContent = dark ? '☀️' : '🌙'; }
+function toggleDark() { dark = !dark; localStorage.setItem('dibinDark', dark); applyDark(); }
+applyDark();
+
+// ── TABS ──────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+// ── TOAST ─────────────────────────────────────────────
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// ── DRAG & DROP ───────────────────────────────────────
+function dragOver(e, id) { e.preventDefault(); document.getElementById(id).classList.add('over'); }
+function dragLeave(id) { document.getElementById(id).classList.remove('over'); }
+function dropFiles(e, type) {
+  e.preventDefault();
+  dragLeave(type === 'img' ? 'imgDrop' : 'b64Drop');
+  const files = [...e.dataTransfer.files];
+  if (type === 'img') addImgFilesRaw(files);
+  else addB64FilesRaw(files);
+}
+
+// ── HELPERS ───────────────────────────────────────────
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
+}
+function imgExt(fmt) { return { 'image/png':'png','image/jpeg':'jpg','image/webp':'webp','image/bmp':'bmp' }[fmt] || 'png'; }
+
+// ══════════════════════════════════════════════════════
+// IMAGE CONVERTER
+// ══════════════════════════════════════════════════════
+let imgFiles = []; // { file, status:'ready'|'working'|'done'|'error', result:{url,name} }
+
+function addImgFiles(e) { addImgFilesRaw([...e.target.files]); e.target.value=''; }
+function addImgFilesRaw(files) {
+  files.filter(f => f.type.startsWith('image/')).forEach(f => {
+    imgFiles.push({ file: f, status: 'ready', result: null });
+  });
+  renderImgList();
+}
+
+function renderImgList() {
+  const list = document.getElementById('imgList');
+  const bar  = document.getElementById('imgActions');
+  const dlAll = document.getElementById('imgDlAll');
+  if (!imgFiles.length) { list.innerHTML = ''; bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  document.getElementById('imgCount').textContent = `${imgFiles.length} file${imgFiles.length!==1?'s':''}`;
+  const doneCount = imgFiles.filter(f => f.status === 'done').length;
+  dlAll.style.display = doneCount >= 2 ? 'inline-block' : 'none';
+
+  list.innerHTML = imgFiles.map((f, i) => {
+    const dlBtn = f.result
+      ? `<a class="fi-dl" href="${f.result.url}" download="${f.result.name}">↓ Save</a>`
+      : '';
+    return `<div class="file-row">
+      <div class="fi">🖼️</div>
+      <div class="fi-info">
+        <div class="fi-name">${esc(f.file.name)}</div>
+        <div class="fi-meta">${fmtSize(f.file.size)}${f.result ? ` → ${f.result.name}` : ''}</div>
+      </div>
+      <span class="fi-badge ${f.status}">${f.status === 'working' ? '⏳ converting...' : f.status}</span>
+      ${dlBtn}
+      <span class="fi-rm" onclick="removeImg(${i})">✕</span>
+    </div>`;
+  }).join('');
+}
+
+function removeImg(i) { imgFiles.splice(i, 1); renderImgList(); }
+function clearImages() { imgFiles = []; renderImgList(); }
+
+async function convertAllImages() {
+  const fmt     = document.getElementById('imgFmt').value;
+  const maxW    = parseInt(document.getElementById('imgW').value) || null;
+  const maxH    = parseInt(document.getElementById('imgH').value) || null;
+  const quality = (parseInt(document.getElementById('imgQ').value) || 92) / 100;
+  const ext     = imgExt(fmt);
+
+  let converted = 0;
+  for (let i = 0; i < imgFiles.length; i++) {
+    if (imgFiles[i].status === 'done') continue;
+    imgFiles[i].status = 'working'; renderImgList();
+    try {
+      const url  = await doConvertImage(imgFiles[i].file, fmt, maxW, maxH, quality);
+      const base = imgFiles[i].file.name.replace(/\.[^.]+$/, '');
+      imgFiles[i].result = { url, name: `${base}.${ext}` };
+      imgFiles[i].status = 'done';
+      converted++;
+    } catch(e) {
+      imgFiles[i].status = 'error';
+    }
+    renderImgList();
+  }
+  toast(`✓ Converted ${converted} image${converted!==1?'s':''} — click ↓ Save to download`);
+}
+
+function doConvertImage(file, fmt, maxW, maxH, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const src = URL.createObjectURL(file);
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (maxW && w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      if (maxH && h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      if (fmt === 'image/jpeg') { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); }
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(src);
+      resolve(c.toDataURL(fmt, quality));
+    };
+    img.onerror = () => { URL.revokeObjectURL(src); reject(); };
+    img.src = src;
+  });
+}
+
+function downloadAllImages() {
+  const done = imgFiles.filter(f => f.status === 'done' && f.result);
+  done.forEach((f, i) => {
+    setTimeout(() => {
+      const a = document.createElement('a');
+      a.href = f.result.url; a.download = f.result.name; a.click();
+    }, i * 250);
+  });
+  toast(`↓ Downloading ${done.length} files...`);
+}
+
+// ══════════════════════════════════════════════════════
+// BASE64 — TEXT
+// ══════════════════════════════════════════════════════
+function encodeText() {
+  const val = document.getElementById('b64In').value;
+  if (!val.trim()) { toast('Nothing to encode'); return; }
+  try {
+    document.getElementById('b64Out').value = btoa(unescape(encodeURIComponent(val)));
+    toast('✓ Encoded');
+  } catch(e) { toast('Encoding failed — try the file encoder below'); }
+}
+function decodeText() {
+  const val = document.getElementById('b64In').value.trim();
+  if (!val) { toast('Nothing to decode'); return; }
+  try {
+    document.getElementById('b64Out').value = decodeURIComponent(escape(atob(val)));
+    toast('✓ Decoded');
+  } catch(e) { toast('Invalid Base64 — check your input'); }
+}
+function copyText(id) {
+  const val = document.getElementById(id).value;
+  if (!val) { toast('Nothing to copy'); return; }
+  navigator.clipboard.writeText(val).then(() => toast('✓ Copied to clipboard'));
+}
+function clearText() { document.getElementById('b64In').value = ''; document.getElementById('b64Out').value = ''; }
+
+// ══════════════════════════════════════════════════════
+// BASE64 — FILE BATCH
+// ══════════════════════════════════════════════════════
+let b64Files = []; // { file, status, result:{b64,name} }
+
+function addB64Files(e) { addB64FilesRaw([...e.target.files]); e.target.value=''; }
+function addB64FilesRaw(files) {
+  files.forEach(f => b64Files.push({ file: f, status: 'ready', result: null }));
+  renderB64List();
+}
+
+function renderB64List() {
+  const list = document.getElementById('b64List');
+  const bar  = document.getElementById('b64Actions');
+  if (!b64Files.length) { list.innerHTML = ''; bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  document.getElementById('b64Count').textContent = `${b64Files.length} file${b64Files.length!==1?'s':''}`;
+
+  list.innerHTML = b64Files.map((f, i) => {
+    const copyBtn = f.result
+      ? `<button class="fi-dl" onclick="copyB64Result(${i})">Copy B64</button>`
+      : '';
+    const dlBtn = f.result
+      ? `<a class="fi-dl" style="background:var(--accent3)" href="${f.result.txtUrl}" download="${f.result.name}.b64.txt">↓ .txt</a>`
+      : '';
+    return `<div class="file-row">
+      <div class="fi">${fileEmoji(f.file.name)}</div>
+      <div class="fi-info">
+        <div class="fi-name">${esc(f.file.name)}</div>
+        <div class="fi-meta">${fmtSize(f.file.size)}${f.result ? ` → ${fmtSize(f.result.b64.length)} encoded` : ''}</div>
+      </div>
+      <span class="fi-badge ${f.status}">${f.status === 'working' ? '⏳ encoding...' : f.status}</span>
+      ${copyBtn}
+      ${dlBtn}
+      <span class="fi-rm" onclick="removeB64(${i})">✕</span>
+    </div>`;
+  }).join('');
+}
+
+function fileEmoji(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const map = { pdf:'📄', png:'🖼️', jpg:'🖼️', jpeg:'🖼️', webp:'🖼️', gif:'🎞️', mp3:'🎵', mp4:'🎬', zip:'🗜️', json:'📋', csv:'📊', xlsx:'📊', docx:'📝', txt:'📃' };
+  return map[ext] || '📎';
+}
+
+function removeB64(i) { b64Files.splice(i, 1); renderB64List(); }
+function clearB64Files() { b64Files = []; renderB64List(); }
+
+function copyB64Result(i) {
+  navigator.clipboard.writeText(b64Files[i].result.b64).then(() => toast('✓ Copied Base64 string'));
+}
+
+async function encodeAllFiles() {
+  let encoded = 0;
+  for (let i = 0; i < b64Files.length; i++) {
+    if (b64Files[i].status === 'done') continue;
+    b64Files[i].status = 'working'; renderB64List();
+    try {
+      const b64 = await readFileAsBase64(b64Files[i].file);
+      const blob = new Blob([b64], { type: 'text/plain' });
+      const txtUrl = URL.createObjectURL(blob);
+      b64Files[i].result = { b64, txtUrl, name: b64Files[i].file.name };
+      b64Files[i].status = 'done';
+      encoded++;
+    } catch(e) {
+      b64Files[i].status = 'error';
+    }
+    renderB64List();
+  }
+  toast(`✓ Encoded ${encoded} file${encoded!==1?'s':''} — copy or save each one`);
+}
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+</script>
+</body>
+</html>
