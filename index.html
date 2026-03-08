@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dibin's File Converter</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f5f0e8'/%3E%3Crect x='6' y='6' width='13' height='16' rx='2' fill='%23fff' stroke='%23c0622f' stroke-width='1.5'/%3E%3Cpath d='M12 6v4h7' fill='none' stroke='%23c0622f' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M19 6l-7 4' fill='none' stroke='%23c0622f' stroke-width='1.5'/%3E%3Ccircle cx='23' cy='23' r='7' fill='%23c0622f'/%3E%3Cpath d='M20 23h6M23 20v6' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="stylesheet" href="converter.css">
+</head>
+<body>
+<div class="app">
+
+<header>
+  <div class="header-left">
+    <div class="logo">dibin's <em>converter</em></div>
+    <div class="logo-sub">// file tools</div>
+  </div>
+  <button class="icon-btn" id="darkBtn" onclick="toggleDark()" title="Dark mode">🌙</button>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('image',this)">Image</button>
+  <button class="tab" onclick="switchTab('filters',this)">Filter Studio</button>
+  <button class="tab" onclick="switchTab('base64',this)">Base64</button>
+  <button class="tab" onclick="switchTab('qr',this)">QR Code</button>
+  <button class="tab" onclick="switchTab('audio',this)">Audio FX</button>
+  <button class="tab" onclick="switchTab('steg',this)">Steg</button>
+  <button class="tab" onclick="switchTab('meta',this)">Metadata</button>
+</div>
+
+<!-- ════════════════ IMAGE ════════════════ -->
+<div class="panel active" id="panel-image">
+  <div class="section-label">Image Converter + Resizer</div>
+  <div class="drop-zone" id="imgDrop" ondragover="dragOver(event,'imgDrop')" ondragleave="dragLeave('imgDrop')" ondrop="dropFiles(event,'img')">
+    <input type="file" accept="image/*" multiple onchange="addImgFiles(event)">
+    <span class="drop-icon">🖼️</span>
+    <div class="drop-title">Drop images here or click to browse</div>
+    <div class="drop-sub">Supports <strong>PNG · JPG · WebP · BMP · GIF</strong> — drop multiple files, drag to reorder</div>
+  </div>
+  <div class="options-bar">
+    <div class="field-grp"><div class="field-lbl">Convert To</div>
+      <select id="imgFmt"><option value="image/png">PNG</option><option value="image/jpeg" selected>JPG</option><option value="image/webp">WebP</option><option value="image/bmp">BMP</option></select>
+    </div>
+    <div class="field-grp"><div class="field-lbl">Max Width px</div><input type="number" id="imgW" placeholder="original" min="1" max="8000"></div>
+    <div class="field-grp"><div class="field-lbl">Max Height px</div><input type="number" id="imgH" placeholder="original" min="1" max="8000"></div>
+  </div>
+  <div class="file-list" id="imgList"></div>
+  <div class="action-bar" id="imgActions" style="display:none">
+    <button class="btn btn-primary" onclick="convertAllImages()">⚡ Convert All</button>
+    <button class="btn btn-green" id="imgDlAll" style="display:none" onclick="downloadAllImages()">↓ Download All</button>
+    <button class="btn btn-ghost" onclick="clearList('img')">Clear</button>
+    <span class="file-count" id="imgCount"></span>
+  </div>
+</div>
+
+<!-- ════════════════ COMPRESS ════════════════ -->
+<!-- ════════════════ BASE64 ════════════════ -->
+<div class="panel" id="panel-base64">
+  <div class="section-label">Text — Encode or Decode</div>
+  <div class="b64-grid">
+    <div class="b64-col">
+      <div class="b64-col-label"><span>Input</span></div>
+      <textarea class="b64-area" id="b64In" placeholder="Paste plain text to encode, or Base64 to decode..."></textarea>
+    </div>
+    <div class="b64-col">
+      <div class="b64-col-label">
+        <span>Output</span>
+        <button class="t-btn" onclick="copyEl('b64Out')">Copy</button>
+      </div>
+      <textarea class="b64-area" id="b64Out" readonly placeholder="Result appears here..."></textarea>
+    </div>
+  </div>
+  <div class="action-bar" style="margin-top:14px">
+    <button class="btn btn-primary" onclick="encodeText()">Encode →</button>
+    <button class="btn btn-outline" onclick="decodeText()">← Decode</button>
+    <button class="btn btn-ghost" onclick="clearB64Text()">Clear</button>
+  </div>
+  <div class="divider"></div>
+  <div class="section-label">Files — Encode to Base64 (batch, drag to reorder)</div>
+  <div class="drop-zone" id="b64Drop" ondragover="dragOver(event,'b64Drop')" ondragleave="dragLeave('b64Drop')" ondrop="dropFiles(event,'b64')">
+    <input type="file" multiple onchange="addB64Files(event)">
+    <span class="drop-icon">📎</span>
+    <div class="drop-title">Drop any files here</div>
+    <div class="drop-sub">Any file type — images, PDFs, docs, whatever<br>Outputs raw Base64 string for embedding in HTML/CSS/code</div>
+  </div>
+  <div class="file-list" id="b64List"></div>
+  <div class="action-bar" id="b64Actions" style="display:none">
+    <button class="btn btn-primary" onclick="encodeAllFiles()">⚡ Encode All</button>
+    <button class="btn btn-ghost" onclick="clearList('b64')">Clear</button>
+    <span class="file-count" id="b64Count"></span>
+  </div>
+</div>
+
+<!-- ════════════════ TEXT TOOLS ════════════════ -->
+<!-- ════════════════ QR CODE ════════════════ -->
+<div class="panel" id="panel-qr">
+  <div class="section-label">QR Code Generator</div>
+  <div class="qr-wrap">
+    <div class="qr-input-col">
+      <div class="field-grp" style="width:100%">
+        <div class="field-lbl">Text or URL</div>
+        <textarea class="qr-input" id="qrInput" placeholder="https://example.com" oninput="qrLive()"></textarea>
+      </div>
+      <div class="qr-options">
+        <div class="field-grp">
+          <div class="field-lbl">Size px</div>
+          <input type="number" id="qrSize" value="256" min="64" max="1024" style="width:90px">
+        </div>
+        <div class="field-grp">
+          <div class="field-lbl">Error Correction</div>
+          <select id="qrErr"><option value="L">Low (L)</option><option value="M" selected>Medium (M)</option><option value="Q">Quartile (Q)</option><option value="H">High (H)</option></select>
+        </div>
+        <div class="field-grp">
+          <div class="field-lbl">Format</div>
+          <select id="qrFmt"><option value="png">PNG</option><option value="svg">SVG</option></select>
+        </div>
+      </div>
+      <div class="action-bar">
+        <button class="btn btn-primary" onclick="generateQR()">⚡ Generate</button>
+        <button class="btn btn-green" id="qrDlBtn" style="display:none" onclick="downloadQR()">↓ Download</button>
+        <button class="btn btn-ghost" onclick="clearQR()">Clear</button>
+      </div>
+    </div>
+    <div class="qr-preview-col">
+      <div class="qr-empty" id="qrEmpty">QR code<br>appears here</div>
+      <div id="qrCanvas"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ AUDIO FX ════════════════ -->
+<div class="panel" id="panel-audio">
+  <div class="section-label">Audio FX Studio — drop a file or record live</div>
+
+  <!-- SOURCE ROW -->
+  <div class="audio-source-row">
+    <div class="drop-zone" id="audioDrop" style="flex:1;margin-bottom:0;padding:28px 20px" ondragover="dragOver(event,'audioDrop')" ondragleave="dragLeave('audioDrop')" ondrop="dropAudio(event)">
+      <input type="file" accept="audio/*" onchange="loadAudioFile(event)">
+      <span class="drop-icon" style="font-size:2rem;margin-bottom:8px">🎵</span>
+      <div class="drop-title" style="font-size:.9rem">Drop audio or click</div>
+      <div class="drop-sub">MP3 · WAV · OGG · M4A · FLAC</div>
+    </div>
+    <div class="audio-or">or</div>
+    <div class="audio-record-box">
+      <div class="record-title">Record from mic</div>
+      <button class="record-btn" id="recBtn" onclick="toggleRecord()">⏺ Record</button>
+      <div class="record-timer" id="recTimer">0:00</div>
+      <div class="record-hint">click to start / stop</div>
+    </div>
+  </div>
+
+  <!-- LOADED FILE INFO -->
+  <div id="audioInfo" style="display:none">
+    <div class="audio-file-bar">
+      <span class="fi" style="font-size:1.3rem">🎵</span>
+      <div class="fi-info"><div class="fi-name" id="audioFileName">—</div><div class="fi-meta" id="audioFileMeta">—</div></div>
+      <button class="btn btn-ghost" style="font-size:.65rem;padding:6px 12px" onclick="clearAudio()">✕ Clear</button>
+    </div>
+
+    <!-- WAVEFORM -->
+    <canvas id="waveCanvas" height="64" style="width:100%;border-radius:8px;background:var(--surface);border:1px solid var(--border);margin:12px 0;display:block"></canvas>
+
+    <!-- PLAYBACK -->
+    <div class="audio-playback-row">
+      <button class="btn btn-primary" id="playBtn" onclick="togglePlay()">▶ Play Original</button>
+      <button class="btn btn-outline" id="playFxBtn" onclick="playWithFX()" style="display:none">▶ Preview with FX</button>
+      <div class="audio-time" id="audioTime">0:00 / 0:00</div>
+    </div>
+
+    <!-- FX GRID -->
+    <div class="fx-grid">
+
+      <div class="fx-card" id="fx-reverse">
+        <div class="fx-header">
+          <div class="fx-name">⏪ Reverse</div>
+          <label class="fx-toggle"><input type="checkbox" id="fxReverseOn" onchange="updateFX()"><span class="fx-knob"></span></label>
+        </div>
+        <div class="fx-desc">Flip the audio backwards — great for creepy effects</div>
+      </div>
+
+      <div class="fx-card" id="fx-reverb">
+        <div class="fx-header">
+          <div class="fx-name">🏛 Reverb</div>
+          <label class="fx-toggle"><input type="checkbox" id="fxReverbOn" onchange="updateFX()"><span class="fx-knob"></span></label>
+        </div>
+        <div class="fx-desc">Room size</div>
+        <input type="range" class="fx-slider" id="fxReverbAmt" min="0.1" max="6" step="0.1" value="2" oninput="updateFX();updateSliderLabel(this,'fxReverbLabel','s')">
+        <div class="fx-val"><span id="fxReverbLabel">2.0s</span></div>
+      </div>
+
+      <div class="fx-card" id="fx-echo">
+        <div class="fx-header">
+          <div class="fx-name">🔁 Echo / Delay</div>
+          <label class="fx-toggle"><input type="checkbox" id="fxEchoOn" onchange="updateFX()"><span class="fx-knob"></span></label>
+        </div>
+        <div class="fx-desc">Delay time</div>
+        <input type="range" class="fx-slider" id="fxEchoDelay" min="0.05" max="1.0" step="0.05" value="0.3" oninput="updateFX();updateSliderLabel(this,'fxEchoLabel','s')">
+        <div class="fx-val"><span id="fxEchoLabel">0.3s</span> feedback <input type="range" class="fx-slider" id="fxEchoFeedback" min="0" max="0.85" step="0.05" value="0.4" oninput="updateFX()"> <span id="fxEchoFbLabel">40%</span></div>
+      </div>
+
+      <div class="fx-card" id="fx-pitch">
+        <div class="fx-header">
+          <div class="fx-name">🎚 Pitch Shift</div>
+          <label class="fx-toggle"><input type="checkbox" id="fxPitchOn" onchange="updateFX()"><span class="fx-knob"></span></label>
+        </div>
+        <div class="fx-desc">Semitones (−12 = demon, +12 = chipmunk)</div>
+        <input type="range" class="fx-slider" id="fxPitchAmt" min="-12" max="12" step="1" value="0" oninput="updateFX();updateSliderLabel(this,'fxPitchLabel',' st')">
+        <div class="fx-val"><span id="fxPitchLabel">0 st</span></div>
+      </div>
+
+      <div class="fx-card" id="fx-speed">
+        <div class="fx-header">
+          <div class="fx-name">⏩ Speed</div>
+          <label class="fx-toggle"><input type="checkbox" id="fxSpeedOn" onchange="updateFX()"><span class="fx-knob"></span></label>
+        </div>
+        <div class="fx-desc">Playback rate (affects pitch too)</div>
+        <input type="range" class="fx-slider" id="fxSpeedAmt" min="0.25" max="3" step="0.05" value="1" oninput="updateFX();updateSliderLabel(this,'fxSpeedLabel','x')">
+        <div class="fx-val"><span id="fxSpeedLabel">1x</span></div>
+      </div>
+
+      <div class="fx-card" id="fx-distort">
+        <div class="fx-header">
+          <div class="fx-name">🔥 Distortion</div>
+          <label class="fx-toggle"><input type="checkbox" id="fxDistortOn" onchange="updateFX()"><span class="fx-knob"></span></label>
+        </div>
+        <div class="fx-desc">Drive amount</div>
+        <input type="range" class="fx-slider" id="fxDistortAmt" min="0" max="400" step="10" value="100" oninput="updateFX();updateSliderLabel(this,'fxDistortLabel','')">
+        <div class="fx-val"><span id="fxDistortLabel">100</span></div>
+      </div>
+
+      <div class="fx-card" id="fx-pixelate">
+        <div class="fx-header">
+          <div class="fx-name">🟫 Pixelate (Bitcrush)</div>
+          <label class="fx-toggle"><input type="checkbox" id="fxPixelOn" onchange="updateFX()"><span class="fx-knob"></span></label>
+        </div>
+        <div class="fx-desc">Bit depth — lower = more destroyed</div>
+        <input type="range" class="fx-slider" id="fxPixelAmt" min="1" max="16" step="1" value="8" oninput="updateFX();updateSliderLabel(this,'fxPixelLabel',' bit')">
+        <div class="fx-val"><span id="fxPixelLabel">8 bit</span></div>
+      </div>
+
+      <div class="fx-card" id="fx-lowpass">
+        <div class="fx-header">
+          <div class="fx-name">🌊 Low-pass Filter</div>
+          <label class="fx-toggle"><input type="checkbox" id="fxLowOn" onchange="updateFX()"><span class="fx-knob"></span></label>
+        </div>
+        <div class="fx-desc">Cutoff frequency (muffled/underwater)</div>
+        <input type="range" class="fx-slider" id="fxLowAmt" min="100" max="20000" step="100" value="800" oninput="updateFX();updateSliderLabel(this,'fxLowLabel',' Hz')">
+        <div class="fx-val"><span id="fxLowLabel">800 Hz</span></div>
+      </div>
+
+      <div class="fx-card" id="fx-highpass">
+        <div class="fx-header">
+          <div class="fx-name">📻 High-pass Filter</div>
+          <label class="fx-toggle"><input type="checkbox" id="fxHighOn" onchange="updateFX()"><span class="fx-knob"></span></label>
+        </div>
+        <div class="fx-desc">Cutoff frequency (tinny/radio)</div>
+        <input type="range" class="fx-slider" id="fxHighAmt" min="20" max="8000" step="50" value="1000" oninput="updateFX();updateSliderLabel(this,'fxHighLabel',' Hz')">
+        <div class="fx-val"><span id="fxHighLabel">1000 Hz</span></div>
+      </div>
+
+      <div class="fx-card" id="fx-unreverb">
+        <div class="fx-header">
+          <div class="fx-name">🧹 Un-reverb</div>
+          <label class="fx-toggle"><input type="checkbox" id="fxUnreverbOn" onchange="updateFX()"><span class="fx-knob"></span></label>
+        </div>
+        <div class="fx-desc">Attempts to dry out a reverby recording (high-pass + compression trick)</div>
+        <input type="range" class="fx-slider" id="fxUnreverbAmt" min="200" max="6000" step="100" value="1500" oninput="updateFX();updateSliderLabel(this,'fxUnreverbLabel',' Hz')">
+        <div class="fx-val">Cutoff <span id="fxUnreverbLabel">1500 Hz</span></div>
+      </div>
+
+      <div class="fx-card" id="fx-bass">
+        <div class="fx-header">
+          <div class="fx-name">🔊 Bass Boost</div>
+          <label class="fx-toggle"><input type="checkbox" id="fxBassOn" onchange="updateFX()"><span class="fx-knob"></span></label>
+        </div>
+        <div class="fx-desc">Low-end boost amount (dB)</div>
+        <input type="range" class="fx-slider" id="fxBassAmt" min="1" max="20" step="1" value="8" oninput="updateFX();updateSliderLabel(this,'fxBassLabel',' dB')">
+        <div class="fx-val"><span id="fxBassLabel">8 dB</span></div>
+      </div>
+
+      <div class="fx-card" id="fx-chorus">
+        <div class="fx-header">
+          <div class="fx-name">✨ Chorus / Wobble</div>
+          <label class="fx-toggle"><input type="checkbox" id="fxChorusOn" onchange="updateFX()"><span class="fx-knob"></span></label>
+        </div>
+        <div class="fx-desc">Wobble rate (Hz)</div>
+        <input type="range" class="fx-slider" id="fxChorusAmt" min="0.1" max="10" step="0.1" value="2" oninput="updateFX();updateSliderLabel(this,'fxChorusLabel',' Hz')">
+        <div class="fx-val"><span id="fxChorusLabel">2 Hz</span></div>
+      </div>
+
+    </div><!-- /fx-grid -->
+
+    <!-- RENDER & DOWNLOAD -->
+    <div class="action-bar" style="margin-top:20px">
+      <button class="btn btn-primary" onclick="renderAndDownload()" id="renderBtn">⚡ Render &amp; Download</button>
+      <button class="btn btn-ghost" onclick="resetFX()">Reset All FX</button>
+      <span class="file-count" id="renderStatus"></span>
+    </div>
+  </div><!-- /audioInfo -->
+</div>
+
+<!-- ════════════════ FILTER STUDIO ════════════════ -->
+<div class="panel" id="panel-filters">
+  <div class="section-label">Image Filter Studio — live preview, tweak then download</div>
+  <div class="drop-zone" id="filterDrop" ondragover="dragOver(event,'filterDrop')" ondragleave="dragLeave('filterDrop')" ondrop="dropFilter(event)">
+    <input type="file" accept="image/*" onchange="loadFilterImage(event)">
+    <span class="drop-icon">🎨</span>
+    <div class="drop-title">Drop an image to start editing</div>
+    <div class="drop-sub">Single image — adjust filters live, then download<br><strong>PNG · JPG · WebP · BMP · GIF</strong></div>
+  </div>
+
+  <div id="filterWorkspace" style="display:none">
+    <!-- CANVAS PREVIEW -->
+    <div class="filter-preview-wrap">
+      <canvas id="filterCanvas" style="max-width:100%;border-radius:10px;border:1.5px solid var(--border);display:block;margin:0 auto"></canvas>
+    </div>
+
+    <!-- SLIDERS -->
+    <div class="filter-grid">
+
+      <div class="filter-row">
+        <div class="filter-label">Brightness <span class="filter-val" id="brightVal">100%</span></div>
+        <input type="range" class="fx-slider" id="fBright" min="0" max="300" value="100" oninput="applyFilters()">
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">Contrast <span class="filter-val" id="contrastVal">100%</span></div>
+        <input type="range" class="fx-slider" id="fContrast" min="0" max="300" value="100" oninput="applyFilters()">
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">Saturation <span class="filter-val" id="saturateVal">100%</span></div>
+        <input type="range" class="fx-slider" id="fSaturate" min="0" max="300" value="100" oninput="applyFilters()">
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">Hue Rotate <span class="filter-val" id="hueVal">0°</span></div>
+        <input type="range" class="fx-slider" id="fHue" min="0" max="360" value="0" oninput="applyFilters()">
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">Blur <span class="filter-val" id="blurVal">0px</span></div>
+        <input type="range" class="fx-slider" id="fBlur" min="0" max="20" step="0.5" value="0" oninput="applyFilters()">
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">Opacity <span class="filter-val" id="opacityVal">100%</span></div>
+        <input type="range" class="fx-slider" id="fOpacity" min="0" max="100" value="100" oninput="applyFilters()">
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">Grayscale <span class="filter-val" id="grayVal">0%</span></div>
+        <input type="range" class="fx-slider" id="fGray" min="0" max="100" value="0" oninput="applyFilters()">
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">Invert <span class="filter-val" id="invertVal">0%</span></div>
+        <input type="range" class="fx-slider" id="fInvert" min="0" max="100" value="0" oninput="applyFilters()">
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">Sepia <span class="filter-val" id="sepiaVal">0%</span></div>
+        <input type="range" class="fx-slider" id="fSepia" min="0" max="100" value="0" oninput="applyFilters()">
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">Stretch X <span class="filter-val" id="stretchXVal">100%</span></div>
+        <input type="range" class="fx-slider" id="fStretchX" min="10" max="300" value="100" oninput="applyFilters()">
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">Stretch Y <span class="filter-val" id="stretchYVal">100%</span></div>
+        <input type="range" class="fx-slider" id="fStretchY" min="10" max="300" value="100" oninput="applyFilters()">
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">Rotate <span class="filter-val" id="rotateVal">0°</span></div>
+        <input type="range" class="fx-slider" id="fRotate" min="-180" max="180" value="0" oninput="applyFilters()">
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">Pixelate <span class="filter-val" id="pixelateVal">off</span></div>
+        <input type="range" class="fx-slider" id="fPixelate" min="0" max="100" value="0" oninput="applyFilters()">
+      </div>
+
+    </div>
+
+    <!-- PRESETS -->
+    <div style="margin:16px 0 6px">
+      <div class="section-label" style="margin-bottom:10px">Presets</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="t-btn" onclick="applyPreset('none')">Original</button>
+        <button class="t-btn" onclick="applyPreset('grayscale')">B&amp;W</button>
+        <button class="t-btn" onclick="applyPreset('sepia')">Sepia</button>
+        <button class="t-btn" onclick="applyPreset('vivid')">Vivid</button>
+        <button class="t-btn" onclick="applyPreset('cold')">Cold</button>
+        <button class="t-btn" onclick="applyPreset('warm')">Warm</button>
+        <button class="t-btn" onclick="applyPreset('nightmare')">Nightmare</button>
+        <button class="t-btn" onclick="applyPreset('deep-fry')">Deep Fry 🍟</button>
+        <button class="t-btn" onclick="applyPreset('stretch')">Silly Stretch</button>
+      </div>
+    </div>
+
+    <div class="action-bar" style="margin-top:16px">
+      <button class="btn btn-primary" onclick="downloadFilteredImage()">↓ Download</button>
+      <div class="field-grp" style="flex-direction:row;align-items:center;gap:8px">
+        <div class="field-lbl">Format</div>
+        <select id="filterFmt" style="padding:6px 10px;font-size:.72rem"><option value="image/png">PNG</option><option value="image/jpeg" selected>JPG</option><option value="image/webp">WebP</option></select>
+      </div>
+      <button class="btn btn-ghost" onclick="resetFilters()">Reset All</button>
+      <button class="btn btn-ghost" onclick="clearFilterImage()">✕ Clear</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ STEGANOGRAPHY ════════════════ -->
+<div class="panel" id="panel-steg">
+  <div class="section-label">Steganography — hide secret messages inside images</div>
+
+  <div class="steg-tabs">
+    <button class="steg-tab active" id="stegHideBtn" onclick="switchSteg('hide')">🔒 Hide Message</button>
+    <button class="steg-tab" id="stegRevealBtn" onclick="switchSteg('reveal')">🔓 Reveal Message</button>
+  </div>
+
+  <!-- HIDE -->
+  <div id="stegHidePanel">
+    <div class="drop-zone" id="stegDrop" ondragover="dragOver(event,'stegDrop')" ondragleave="dragLeave('stegDrop')" ondrop="dropSteg(event)">
+      <input type="file" accept="image/png,image/bmp" onchange="loadStegImage(event)">
+      <span class="drop-icon">🖼️</span>
+      <div class="drop-title">Drop a PNG or BMP image</div>
+      <div class="drop-sub">The message will be invisibly embedded into the image pixels<br><strong>PNG and BMP only</strong> — JPG compression destroys hidden data</div>
+    </div>
+    <div id="stegHideControls" style="display:none">
+      <!-- LIVE PREVIEW: original vs encoded side by side -->
+      <div class="steg-preview-row" style="margin-bottom:18px">
+        <div style="flex:1;min-width:0">
+          <div class="steg-canvas-label">Original</div>
+          <canvas id="stegCanvas" style="width:100%;max-height:260px;border-radius:10px;border:1.5px solid var(--border);display:block;object-fit:contain"></canvas>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="steg-canvas-label">Preview <span id="stegPreviewBadge" style="display:none;background:var(--accent);color:white;font-size:.55rem;padding:2px 7px;border-radius:20px;margin-left:6px;vertical-align:middle">message hidden</span></div>
+          <canvas id="stegPreviewCanvas" style="width:100%;max-height:260px;border-radius:10px;border:1.5px solid var(--border2);display:block;object-fit:contain"></canvas>
+        </div>
+        <div class="steg-info" id="stegInfo"></div>
+      </div>
+      <div class="field-grp" style="width:100%;margin-bottom:8px">
+        <div class="field-lbl">Secret Message</div>
+        <textarea class="b64-area" id="stegMsg" placeholder="Type your secret message here..." style="height:100px" oninput="stegLivePreview()"></textarea>
+      </div>
+      <div class="field-grp" style="margin-bottom:16px">
+        <div class="field-lbl">Password (optional — encrypts the message)</div>
+        <input type="password" id="stegPass" placeholder="Leave blank for no encryption" style="width:100%;max-width:360px" oninput="stegLivePreview()">
+      </div>
+      <div class="action-bar">
+        <button class="btn btn-primary" onclick="hideMessage()">Hide &amp; Download</button>
+        <button class="btn btn-ghost" onclick="clearSteg()">Clear</button>
+        <span class="file-count" id="stegHideStatus"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVEAL -->
+  <div id="stegRevealPanel" style="display:none">
+    <div class="drop-zone" id="stegRevealDrop" ondragover="dragOver(event,'stegRevealDrop')" ondragleave="dragLeave('stegRevealDrop')" ondrop="dropStegReveal(event)">
+      <input type="file" accept="image/png,image/bmp" onchange="loadStegReveal(event)">
+      <span class="drop-icon">🔍</span>
+      <div class="drop-title">Drop an image to inspect</div>
+      <div class="drop-sub">If it contains a hidden message, it will be extracted and shown below</div>
+    </div>
+    <div id="stegRevealControls" style="display:none">
+      <div class="field-grp" style="width:100%;margin:16px 0 8px">
+        <div class="field-lbl">Password (if the message was encrypted)</div>
+        <input type="password" id="stegRevealPass" placeholder="Leave blank if no password was used" style="width:100%;max-width:360px">
+      </div>
+      <div class="action-bar" style="margin-bottom:16px">
+        <button class="btn btn-primary" onclick="revealMessage()">🔓 Reveal Message</button>
+      </div>
+      <div id="stegRevealResult" style="display:none">
+        <div class="section-label">Extracted Message</div>
+        <div class="preview-wrap" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:16px">
+          <div id="stegRevealText" style="font-family:'DM Mono',monospace;font-size:.8rem;color:var(--ink);white-space:pre-wrap;word-break:break-all;line-height:1.7"></div>
+        </div>
+        <div class="action-bar" style="margin-top:10px">
+          <button class="btn btn-green" onclick="copyStegResult()">Copy Message</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ METADATA ════════════════ -->
+<div class="panel" id="panel-meta">
+  <div class="section-label">Metadata Stripper — see what's hiding in your files, then clean it</div>
+  <div class="drop-zone" id="metaDrop" ondragover="dragOver(event,'metaDrop')" ondragleave="dragLeave('metaDrop')" ondrop="dropMeta(event)">
+    <input type="file" accept="image/jpeg,image/jpg,image/tiff,image/webp,image/png" multiple onchange="loadMetaFiles(event)">
+    <div class="drop-title">Drop images here</div>
+    <div class="drop-sub">Reads EXIF data from <strong>JPG · TIFF · WebP</strong> — strips from all formats<br>Your photos may contain GPS coordinates, device info, timestamps and more</div>
+  </div>
+
+  <div id="metaResults" style="display:none;margin-top:20px">
+    <div id="metaFileList"></div>
+    <div class="action-bar" style="margin-top:16px">
+      <button class="btn btn-primary" onclick="stripAll()">Strip All &amp; Download</button>
+      <button class="btn btn-ghost" onclick="clearMeta()">Clear</button>
+    </div>
+  </div>
+</div>
+
+<footer style="text-align:center;padding:44px 0 16px;font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted2);letter-spacing:.08em">
+  crafted by <span style="color:var(--accent);font-weight:500">dibin17</span>
+</footer>
+</div><!-- /app -->
+
+<div class="toast" id="toast"></div>
+
+<script src="converter.js"></script>
+</body>
+</html>
